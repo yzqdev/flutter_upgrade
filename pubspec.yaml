@@ -1,0 +1,25 @@
+name: flutter_xupdate
+description: A Flutter plugin for XUpdate(Android Version Update Library).
+version: 3.0.0
+homepage: https://github.com/xuexiangjys/flutter_xupdate
+repository: https://github.com/xuexiangjys/flutter_xupdate
+issue_tracker: https://github.com/xuexiangjys/flutter_xupdate/issues
+
+environment:
+  sdk: '>=3.0.0 <13.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  package_info_plus: ^8.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.xuexiang.flutter_xupdate
+        pluginClass: FlutterXUpdatePlugin
