@@ -11,19 +11,6 @@ pluginManagement {
     gradlePluginPortal()
   }
 }
-dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-  repositories {
-    google()
-    mavenCentral()
-    maven { url= uri("https://jitpack.io") }
-  }
-  versionCatalogs {
-    create("libs") {
-      from(files(System.getenv("android_proj") + "\\libs.versions.toml"))
-    }
-  }
-}
+
 rootProject.name = "flutter_xupdate"
-include(":okhttputils")
-project(":okhttputils").projectDir = file(System.getenv("BomGradlePlugin") + "\\okhttputils")
+
