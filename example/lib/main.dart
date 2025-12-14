@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_xupdate/flutter_xupdate.dart';
+import 'package:flutter_xupdate_example/simple_channel.dart';
 import 'app_info.dart';
 
 void main() => runApp(MyApp());
@@ -149,6 +150,11 @@ class _MyAppState extends State<MyApp> {
                       MainAxisAlignment.start, //布局方向，默认MainAxisAlignment.end
                   // mainAxisSize: MainAxisSize.min, //主轴大小，默认MainAxisSize.max
                   children: <Widget>[
+                    ElevatedButton(onPressed: ()async{
+                      SimpleChannel sim=SimpleChannel();
+                      var res=await sim.update();
+                      print(res);
+                    }, child: Text("更新蒲公英")),
                     ElevatedButton(
                       child: const Text('默认App更新',
                         style: TextStyle(color: Colors.white),),
@@ -280,13 +286,13 @@ class _MyAppState extends State<MyApp> {
   }
 
   final String _updateUrl =
-      'https://gitee.com/xuexiangjys/XUpdate/raw/master/jsonapi/update_test.json';
+      'https://gitee.com/yzqdev/jsonapi/raw/main/update_test.json';
 
   final String _updateUrl2 =
-      'https://gitee.com/xuexiangjys/XUpdate/raw/master/jsonapi/update_forced.json';
+      'https://gitee.com/yzqdev/jsonapi/raw/main/update_forced.json';
 
   final String _updateUrl3 =
-      'https://gitee.com/xuexiangjys/XUpdate/raw/master/jsonapi/update_custom.json';
+      'https://gitee.com/yzqdev/jsonapi/raw/main/update_custom.json';
 
   ///默认App更新
   void checkUpdateDefault() {

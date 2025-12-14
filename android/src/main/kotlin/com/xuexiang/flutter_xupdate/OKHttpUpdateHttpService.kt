@@ -20,7 +20,9 @@ import com.hjq.http.EasyConfig
 import com.hjq.http.EasyHttp
 import com.hjq.http.config.IRequestApi
 import com.hjq.http.config.IRequestHandler
+import com.hjq.http.config.IRequestInterceptor
 import com.hjq.http.config.IRequestServer
+
 import com.hjq.http.lifecycle.ApplicationLifecycle
 import com.hjq.http.listener.OnDownloadListener
 import com.hjq.http.listener.OnHttpListener
@@ -39,32 +41,39 @@ import java.util.TreeMap
 import java.util.concurrent.TimeUnit
 
 class RequestHandler : IRequestHandler {
-  override fun requestSuccess(httpRequest: HttpRequest<*>, response: Response, type: Type): Any {
-    return response.body!!.string()
-  }
+    override fun requestSuccess(httpRequest: HttpRequest<*>, response: Response, type: Type): Any {
+        return response.body!!.string()
+    }
 
-  override fun requestFail(httpRequest: HttpRequest<*>, e: Throwable): Throwable {
-    return e
-  }
-
-}
-class FakeServer:IRequestServer{
-  override fun getHost(): String {
-    return  "https://www.wanandroid.com/"
-  }
+    override fun requestFail(httpRequest: HttpRequest<*>, e: Throwable): Throwable {
+        return e
+    }
 
 }
+
+class FakeServer : IRequestServer {
+    override fun getHost(): String {
+        return "https://www.wanandroid.com/"
+    }
+
+}
+
 open class TestServer : IRequestServer {
 
 
-  override fun getHost(): String {
-    return ""
-  }
+    override fun getHost(): String {
+        return ""
+    }
 }
-class DefaultApi(private val url:String):IRequestApi,TestServer(){
-  override fun getApi(): String {
-    return url
-  }
+
+class DefaultApi(private val reqUrl: String) : IRequestApi, IRequestInterceptor, TestServer() {
+    override fun getHost(): String {
+        return ""
+    }
+
+    override fun getApi(): String {
+        return reqUrl
+    }
 
 }
 
@@ -75,115 +84,117 @@ class DefaultApi(private val url:String):IRequestApi,TestServer(){
  * @since 2018/7/10 下午4:04
  */
 class OKHttpUpdateHttpService(timeout: Int, private val mIsPostJson: Boolean) : IUpdateHttpService {
-  constructor(isPostJson: Boolean) : this(20000, isPostJson)
+    constructor(isPostJson: Boolean) : this(20000, isPostJson)
 
-  /**
-   * 构造方法
-   *
-   * @param timeout    请求超时响应时间
-   * @param isPostJson 是否使用json
-   */
-
-
-  init {
-    val builder: OkHttpClient.Builder = OkHttpClient.Builder()
-    builder.readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-    builder.writeTimeout(5000, TimeUnit.MILLISECONDS)
-    builder.connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-
-    EasyConfig.with(builder.build()).setServer(FakeServer()).setHandler(RequestHandler())
-      .into()
-    UpdateLog.d("设置请求超时响应时间:" + timeout + "ms, 是否使用json:" + mIsPostJson)
-  }
-
-  override fun asyncGet(
-    url: String,
-    params: Map<String, Any>,
-    callBack: IUpdateHttpService.Callback
-  ) {
-    EasyHttp.get(ApplicationLifecycle.getInstance()).api(DefaultApi(url))
-      .request(object : OnHttpListener<String> {
-        override fun onHttpSuccess(result: String) {
-          callBack.onSuccess(result)
-        }
-
-        override fun onHttpFail(e: Throwable) {
-          callBack.onError(e)
-        }
-      })
+    /**
+     * 构造方法
+     *
+     * @param timeout    请求超时响应时间
+     * @param isPostJson 是否使用json
+     */
 
 
-  }
+    init {
+        val builder: OkHttpClient.Builder = OkHttpClient.Builder()
+        builder.readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+        builder.writeTimeout(5000, TimeUnit.MILLISECONDS)
+        builder.connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
 
-  override fun asyncPost(
-    url: String,
-    params: Map<String, Any>,
-    callBack: IUpdateHttpService.Callback
-  ) {
-    val JSON = "application/json; charset=utf-8".toMediaTypeOrNull()
-    //这里默认post的是Form格式，使用json格式的请修改 post -> postString
-    if (mIsPostJson) {
+        EasyConfig.with(builder.build()).setServer(FakeServer()).setHandler(RequestHandler())
+            .into()
+        UpdateLog.d("设置请求超时响应时间:" + timeout + "ms, 是否使用json:" + mIsPostJson)
+    }
 
-      val body: RequestBody = Gson().toJson(params).toRequestBody(JSON)
-      EasyHttp.post(ApplicationLifecycle.getInstance()).api(DefaultApi(url)).body(body)
-        .request(object : OnHttpListener<String> {
-          override fun onHttpSuccess(result: String) {
-            callBack.onSuccess(result)
-          }
+    override fun asyncGet(
+        url: String,
+        params: Map<String, Any>,
+        callBack: IUpdateHttpService.Callback
+    ) {
+        EasyHttp.get(ApplicationLifecycle.getInstance()).api(EasyRequestUrl(url))
+            .request(object : OnHttpListener<String> {
+                override fun onHttpSuccess(result: String) {
+                    callBack.onSuccess(result)
+                }
 
-          override fun onHttpFail(e: Throwable) {
-            callBack.onError(e)
-          }
+                override fun onHttpFail(e: Throwable) {
+                    callBack.onError(e)
+                }
+            })
 
-        })
-
-
-    } else {
 
     }
 
-  }
+    override fun asyncPost(
+        url: String,
+        params: Map<String, Any>,
+        callBack: IUpdateHttpService.Callback
+    ) {
+        val JSON = "application/json; charset=utf-8".toMediaTypeOrNull()
+        //这里默认post的是Form格式，使用json格式的请修改 post -> postString
+        if (mIsPostJson) {
 
-  override fun download(
-    url: String,
-    path: String,
-    fileName: String,
-    callback: IUpdateHttpService.DownloadCallback
-  ) {
+
+            val body: RequestBody = Gson().toJson(params).toRequestBody(JSON)
+            EasyHttp.post(ApplicationLifecycle.getInstance()).api(EasyRequestUrl(url )).body(body)
+                .request(object : OnHttpListener<String> {
+                    override fun onHttpSuccess(result: String) {
+                        callBack.onSuccess(result)
+                    }
+
+                    override fun onHttpFail(e: Throwable) {
+                        callBack.onError(e)
+                    }
+
+                })
 
 
-    EasyHttp.download(ApplicationLifecycle.getInstance()).method(HttpMethod.GET)
-      .url(url).tag(url).listener(object : OnDownloadListener {
-        override fun onDownloadStart(file: File) {
-          super.onDownloadStart(file)
-          callback.onStart()
+        } else {
+
         }
 
-        override fun onDownloadProgressChange(file: File, progress: Int) {
-          callback.onProgress((progress / 100).toFloat(), file.totalSpace)
-        }
-
-        override fun onDownloadSuccess(file: File) {
-          callback.onSuccess(file)
-        }
-
-        override fun onDownloadFail(file: File, throwable: Throwable) {
-          callback.onError(throwable)
-        }
-      }).start()
-
-  }
-
-  override fun cancelDownload(url: String) {
-    EasyHttp.cancelByTag(url)
-
-  }
-
-  private fun transform(params: Map<String, Any>): Map<String, String> {
-    val map: MutableMap<String, String> = TreeMap()
-    for ((key, value) in params) {
-      map[key] = value.toString()
     }
-    return map
-  }
+
+    override fun download(
+        url: String,
+        path: String,
+        fileName: String,
+        callback: IUpdateHttpService.DownloadCallback
+    ) {
+
+
+        EasyHttp.download(ApplicationLifecycle.getInstance()).method(HttpMethod.GET)
+            .file(path )
+            .url(url).tag(url).listener(object : OnDownloadListener {
+                override fun onDownloadStart(file: File) {
+                    super.onDownloadStart(file)
+                    callback.onStart()
+                }
+
+                override fun onDownloadProgressChange(file: File, progress: Int) {
+                    callback.onProgress((progress / 100).toFloat(), file.totalSpace)
+                }
+
+                override fun onDownloadSuccess(file: File) {
+                    callback.onSuccess(file)
+                }
+
+                override fun onDownloadFail(file: File, throwable: Throwable) {
+                    callback.onError(throwable)
+                }
+            }).start()
+
+    }
+
+    override fun cancelDownload(url: String) {
+        EasyHttp.cancelByTag(url)
+
+    }
+
+    private fun transform(params: Map<String, Any>): Map<String, String> {
+        val map: MutableMap<String, String> = TreeMap()
+        for ((key, value) in params) {
+            map[key] = value.toString()
+        }
+        return map
+    }
 }

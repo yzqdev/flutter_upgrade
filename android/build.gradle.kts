@@ -1,3 +1,6 @@
+
+
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -10,11 +13,13 @@ android {
     compileSdk = 36
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
-
+    kotlinOptions {
+        jvmTarget ="11"
+    }
 
 //    sourceSets {
 //        main.java.srcDirs += "src/main/kotlin"
@@ -42,21 +47,15 @@ android {
 //        }
 //    }
 }
-repositories {
-    google()
-    mavenCentral()
-    maven { url = uri("https://jitpack.io") } // 确保这里添加
-}
-kotlin {
-    jvmToolchain(17)   // 一次性把 Java/Kotlin/测试全拉到 17
-}
+
+
+
 
 dependencies {
-    // https://mvnrepository.com/artifact/com.github.xuexiangjys/XUpdate
     implementation("com.github.xuexiangjys:XUpdate:2.1.5")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.code.gson:gson:2.13.2")
-    implementation("com.github.getActivity:EasyHttp:13.0")
+    implementation("com.google.code.gson:gson:2.12.1")
+implementation("com.github.getActivity:EasyHttp:latest.release")
     implementation("com.squareup.okhttp3:okhttp:4.+")
 
 }

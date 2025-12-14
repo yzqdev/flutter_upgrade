@@ -6,20 +6,34 @@ plugins {
 }
 
 android {
-    namespace = "dev.yzq.flutter_xupdate.flutter_xupdate"
+    namespace = "dev.yzq.flutter_xupdate.sample"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    sourceSets {
+        getByName("main") {
+            // 使用 srcDirs += 添加到 java sourceset
+            java.srcDirs(files("src/main/kotlin"))
 
+            // 推荐同时将 'java' 目录添加到 'kotlin' sourceset 中
+            kotlin.srcDirs(files("src/main/java"))
+        }
 
+        getByName("test") {
+            java.srcDirs(files("src/test/kotlin"))
+        }
+    }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "dev.yzq.flutter_xupdate.flutter_xupdate"
+        applicationId = "dev.yzq.flutter_xupdate.sample"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,15 +44,17 @@ android {
 
     buildTypes {
         release {
+            ndk.abiFilters.clear()
+            // Set your custom filters.
+            ndk.abiFilters.addAll(listOf("arm64-v8a"))
+
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
-kotlin {
-    jvmToolchain(17)        // Kotlin 与 Java 统一用 JDK 17
-}
+
 flutter {
     source = "../.."
 }

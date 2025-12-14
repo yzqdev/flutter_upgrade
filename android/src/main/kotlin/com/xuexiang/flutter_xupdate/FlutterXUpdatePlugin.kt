@@ -87,6 +87,7 @@ class FlutterXUpdatePlugin : FlutterPlugin, ActivityAware,
           errorMap["message"] = error.message!!
           errorMap["detailMsg"] = error.detailMsg
           if (mMethodChannel != null) {
+
             mMethodChannel.invokeMethod("onUpdateError", errorMap)
           }
         }
@@ -175,7 +176,7 @@ class FlutterXUpdatePlugin : FlutterPlugin, ActivityAware,
     }
 
     val map = call.argument<HashMap<String, Any>>("updateEntity")
-    val updateEntity: UpdateEntity = FlutterCustomUpdateParser.Companion.parseUpdateEntityMap(
+    val updateEntity: UpdateEntity = FlutterCustomUpdateParser.parseUpdateEntityMap(
       map!!
     )
 

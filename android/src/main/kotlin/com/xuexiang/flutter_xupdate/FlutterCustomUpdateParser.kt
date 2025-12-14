@@ -25,6 +25,7 @@ class FlutterCustomUpdateParser(channel: MethodChannel?) : IUpdateParser {
   override fun parseJson(json: String, callback: IUpdateParseCallback) {
     val map: MutableMap<String, Any> = HashMap(3)
     map["update_json"] = json
+
     mMethodChannel.get()!!.invokeMethod("onCustomUpdateParse", map, object : MethodChannel.Result {
       override fun success(result: Any?) {
         handleCustomParseResult((result as HashMap<String, Any>?)!!, callback)

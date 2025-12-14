@@ -50,6 +50,7 @@ class RetryUpdateDownloader(
     downloadListener: OnFileDownloadListener?
   ) {
     super.startDownload(updateEntity, downloadListener)
+
     mIsStartDownload = true
   }
 
