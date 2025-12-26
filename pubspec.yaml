@@ -6,7 +6,7 @@ repository: https://github.com/xuexiangjys/flutter_xupdate
 issue_tracker: https://github.com/xuexiangjys/flutter_xupdate/issues
 
 environment:
-  sdk: '>=3.0.0 <13.0.0'
+  sdk: ^3.0.0
 
 dependencies:
   flutter:
