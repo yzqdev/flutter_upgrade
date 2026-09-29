@@ -75,11 +75,11 @@ class FlutterCustomUpdateParser(channel: MethodChannel?) : IUpdateParser {
       val downloadUrl = map["downloadUrl"] as String?
 
       val updateEntity = UpdateEntity()
-      updateEntity.setHasUpdate(hasUpdate)
-        .setVersionCode(versionCode)
-        .setVersionName(versionName)
-        .setUpdateContent(updateContent)
-        .setDownloadUrl(downloadUrl)
+      updateEntity.isHasUpdate = hasUpdate
+      updateEntity.versionCode = versionCode
+      updateEntity.versionName = versionName ?: "unknown_version"
+      updateEntity.updateContent = updateContent
+      updateEntity.downloadUrl = downloadUrl
 
       val isForce = map["isForce"]
       val isIgnorable = map["isIgnorable"]
@@ -87,16 +87,16 @@ class FlutterCustomUpdateParser(channel: MethodChannel?) : IUpdateParser {
       val apkMd5 = map["apkMd5"]
 
       if (isForce != null) {
-        updateEntity.setForce(isForce as Boolean)
+        updateEntity.isForce = isForce as Boolean
       }
       if (isIgnorable != null) {
-        updateEntity.setIsIgnorable(isIgnorable as Boolean)
+        updateEntity.isIgnorable = isIgnorable as Boolean
       }
       if (apkSize != null) {
-        updateEntity.setSize((apkSize as Int).toLong())
+        updateEntity.size = (apkSize as Int).toLong()
       }
       if (apkMd5 != null) {
-        updateEntity.setMd5(apkMd5 as String)
+        updateEntity.md5 = apkMd5 as String
       }
 
       return updateEntity

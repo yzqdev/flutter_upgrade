@@ -10,8 +10,10 @@ import 'app_info.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
-  _MyAppState createState() => _MyAppState();
+  State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
@@ -61,12 +63,12 @@ class _MyAppState extends State<MyApp> {
           .then((value) {
         updateMessage('初始化成功: $value');
       }).catchError((error) {
-        print(error);
+        debugPrint(error.toString());
       });
 
 //      FlutterXUpdate.setErrorHandler(
 //          onUpdateError: (Map<String, dynamic> message) async {
-//        print(message);
+//        debugPrint(message.toString());
 //        //下载失败
 //        if (message["code"] == 4000) {
 //          FlutterXUpdate.showRetryUpdateTipDialog(
@@ -85,7 +87,7 @@ class _MyAppState extends State<MyApp> {
 
       FlutterXUpdate.setUpdateHandler(
           onUpdateError: (Map<String, dynamic> message) async {
-        print(message);
+        debugPrint(message.toString());
         //下载失败
         if (message["code"] == 4000) {
           FlutterXUpdate.showRetryUpdateTipDialog(
@@ -113,7 +115,7 @@ class _MyAppState extends State<MyApp> {
   ///将自定义的json内容解析为UpdateEntity实体类
   UpdateEntity customParseJson(String json) {
     AppInfo appInfo = AppInfo.fromJson(json);
-    print(appInfo);
+    debugPrint(appInfo.toString());
     return UpdateEntity(
         hasUpdate: appInfo.hasUpdate,
         isIgnorable: appInfo.isIgnorable,
@@ -153,26 +155,25 @@ class _MyAppState extends State<MyApp> {
                     ElevatedButton(onPressed: ()async{
                       SimpleChannel sim=SimpleChannel();
                       var res=await sim.update();
-                      print(res);
+                      debugPrint(res.toString());
                     }, child: Text("更新蒲公英")),
                     ElevatedButton(
-                      child: const Text('默认App更新',
-                        style: TextStyle(color: Colors.white),),
+                      onPressed: checkUpdateDefault,
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
-                      onPressed: checkUpdateDefault,
-                    ),
+                      child: const Text('默认App更新',
+                        style: TextStyle(color: Colors.white),)),
+
                     ElevatedButton(
+                      onPressed: checkUpdateSupportBackground,
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Theme.of(context).primaryColor)),
                       child: const Text(
                         '默认App更新 + 支持后台更新',
                         style: TextStyle(color: Colors.white),
-                      ),
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                              Theme.of(context).primaryColor)),
-                      onPressed: checkUpdateSupportBackground,
-                    ),
+                      )),
                   ],
                 )),
                 autoFitWidget(OverflowBar(
@@ -181,29 +182,29 @@ class _MyAppState extends State<MyApp> {
                   // mainAxisSize: MainAxisSize.min, //主轴大小，默认MainAxisSize.max
                   children: <Widget>[
                     ElevatedButton(
-                      child: const Text('调整宽高比',
-                        style: TextStyle(color: Colors.white),),
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                              Theme.of(context).primaryColor)),
                       onPressed: checkUpdateRatio,
-                    ),
-                    ElevatedButton(
-                      child: const Text('强制更新',
-                        style: TextStyle(color: Colors.white),),
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
+                      child: const Text('调整宽高比',
+                        style: TextStyle(color: Colors.white),)),
+
+                    ElevatedButton(
                       onPressed: checkUpdateForce,
-                    ),
-                    ElevatedButton(
-                      child: const Text('自动模式',
-                        style: TextStyle(color: Colors.white),),
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
+                      child: const Text('强制更新',
+                        style: TextStyle(color: Colors.white),)),
+
+                    ElevatedButton(
                       onPressed: checkUpdateAutoMode,
-                    ),
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Theme.of(context).primaryColor)),
+                      child: const Text('自动模式',
+                        style: TextStyle(color: Colors.white),)),
+
                   ],
                 )),
                 autoFitWidget(OverflowBar(
@@ -212,21 +213,21 @@ class _MyAppState extends State<MyApp> {
                   // mainAxisSize: MainAxisSize.min, //主轴大小，默认MainAxisSize.max
                   children: <Widget>[
                     ElevatedButton(
-                      child: const Text('下载时点击取消允许切换下载方式',
-                        style: TextStyle(color: Colors.white),),
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                              Theme.of(context).primaryColor)),
                       onPressed: enableChangeDownLoadType,
-                    ),
-                    ElevatedButton(
-                      child: const Text('显示重试提示弹窗',
-                        style: TextStyle(color: Colors.white),),
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
+                      child: const Text('下载时点击取消允许切换下载方式',
+                        style: TextStyle(color: Colors.white),)),
+
+                    ElevatedButton(
                       onPressed: showRetryDialogTip,
-                    ),
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Theme.of(context).primaryColor)),
+                      child: const Text('显示重试提示弹窗',
+                        style: TextStyle(color: Colors.white),)),
+
                   ],
                 )),
                 autoFitWidget(OverflowBar(
@@ -235,21 +236,21 @@ class _MyAppState extends State<MyApp> {
                   // mainAxisSize: MainAxisSize.min, //主轴大小，默认MainAxisSize.max
                   children: <Widget>[
                     ElevatedButton(
-                      child: const Text('使用自定义json解析',
-                        style: TextStyle(color: Colors.white),),
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                              Theme.of(context).primaryColor)),
                       onPressed: customJsonParse,
-                    ),
-                    ElevatedButton(
-                      child: const Text('直接传入UpdateEntity进行更新',
-                        style: TextStyle(color: Colors.white),),
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
+                      child: const Text('使用自定义json解析',
+                        style: TextStyle(color: Colors.white),)),
+
+                    ElevatedButton(
                       onPressed: checkUpdateByUpdateEntity,
-                    ),
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Theme.of(context).primaryColor)),
+                      child: const Text('直接传入UpdateEntity进行更新',
+                        style: TextStyle(color: Colors.white),)),
+
                   ],
                 )),
                 autoFitWidget(OverflowBar(
@@ -258,21 +259,21 @@ class _MyAppState extends State<MyApp> {
                   // mainAxisSize: MainAxisSize.min, //主轴大小，默认MainAxisSize.max
                   children: <Widget>[
                     ElevatedButton(
-                      child: const Text('自定义更新弹窗样式',
-                        style: TextStyle(color: Colors.white),),
-                      style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                              Theme.of(context).primaryColor)),
                       onPressed: customPromptDialog,
-                    ),
-                    ElevatedButton(
-                      child: const Text('定时更新',
-                        style: TextStyle(color: Colors.white),),
                       style: ButtonStyle(
                           backgroundColor: WidgetStateProperty.all(
                               Theme.of(context).primaryColor)),
+                      child: const Text('自定义更新弹窗样式',
+                        style: TextStyle(color: Colors.white),)),
+
+                    ElevatedButton(
                       onPressed: timerUpdateTask,
-                    ),
+                      style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                              Theme.of(context).primaryColor)),
+                      child: const Text('定时更新',
+                        style: TextStyle(color: Colors.white),)),
+
                   ],
                 ))
               ],

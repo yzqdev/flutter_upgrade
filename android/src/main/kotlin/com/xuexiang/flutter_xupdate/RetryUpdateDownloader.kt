@@ -17,7 +17,7 @@
 package com.xuexiang.flutter_xupdate
 
 import android.text.TextUtils
-import com.xuexiang.xupdate._XUpdate
+import com.xuexiang.xupdate.XupdateTool
 import com.xuexiang.xupdate.entity.UpdateEntity
 import com.xuexiang.xupdate.proxy.impl.DefaultUpdateDownloader
 import com.xuexiang.xupdate.service.OnFileDownloadListener
@@ -62,7 +62,7 @@ class RetryUpdateDownloader(
       if (mEnableRetry && !TextUtils.isEmpty(mRetryUrl)) {
         RetryUpdateTipDialog.Companion.show(mRetryContent, mRetryUrl)
       } else {
-        _XUpdate.onUpdateError(4002, "取消下载")
+        XupdateTool.onUpdateError(4002, "取消下载")
       }
     }
   }

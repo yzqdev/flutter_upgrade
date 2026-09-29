@@ -1,15 +1,51 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 访问网络 -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- 访问网络状态 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- APK下载安装 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- APK下载存储权限(仅低版本Android需要) -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:ignore="ScopedStorage" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <application>
 
-        <!-- 版本更新重试提示弹窗-->
+        <!-- APK下载服务 -->
+        <service
+            android:name="com.xuexiang.xupdate.service.DownloadService"
+            android:exported="false" />
+
+        <!-- 更新文件访问FileProvider -->
+        <provider
+            android:name="com.xuexiang.xupdate.utils.UpdateFileProvider"
+            android:authorities="${applicationId}.updateFileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
+
+        <!-- 版本更新提示弹窗 -->
         <activity
-            android:name=".RetryUpdateTipDialog"
+            android:name="com.xuexiang.xupdate.widget.UpdateDialogActivity"
+            android:exported="false"
+            android:theme="@style/XUpdate_DialogTheme" />
+
+        <!-- 版本更新重试提示弹窗 -->
+        <activity
+            android:name="com.xuexiang.flutter_xupdate.RetryUpdateTipDialog"
             android:theme="@style/DialogTheme" />
 
     </application>
-
 
 </manifest>

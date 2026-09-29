@@ -88,13 +88,13 @@ class RetryUpdateTipDialog : AppCompatActivity(), DialogInterface.OnDismissListe
      */
     fun show(content: String?, url: String?) {
       val intent = Intent(
-        XUpdate.getContext(),
+        XUpdate.context,
         RetryUpdateTipDialog::class.java
       )
       intent.putExtra(KEY_CONTENT, content)
       intent.putExtra(KEY_URL, url)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      XUpdate.getContext().startActivity(intent)
+      XUpdate.context.startActivity(intent)
     }
   }
 }

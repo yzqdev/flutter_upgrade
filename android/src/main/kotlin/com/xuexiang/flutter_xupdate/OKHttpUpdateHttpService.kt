@@ -15,186 +15,210 @@
  */
 package com.xuexiang.flutter_xupdate
 
-import com.google.gson.Gson
-import com.hjq.http.EasyConfig
-import com.hjq.http.EasyHttp
-import com.hjq.http.config.IRequestApi
-import com.hjq.http.config.IRequestHandler
-import com.hjq.http.config.IRequestInterceptor
-import com.hjq.http.config.IRequestServer
-
-import com.hjq.http.lifecycle.ApplicationLifecycle
-import com.hjq.http.listener.OnDownloadListener
-import com.hjq.http.listener.OnHttpListener
-import com.hjq.http.model.HttpMethod
-import com.hjq.http.request.HttpRequest
-import com.xuexiang.xupdate.logs.UpdateLog
 import com.xuexiang.xupdate.proxy.IUpdateHttpService
+import com.xuexiang.xupdate.utils.UpdateLog
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONObject
 import java.io.File
-import java.lang.reflect.Type
-import java.util.TreeMap
+import java.io.FileOutputStream
+import java.io.IOException
+import java.net.URLEncoder
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-class RequestHandler : IRequestHandler {
-    override fun requestSuccess(httpRequest: HttpRequest<*>, response: Response, type: Type): Any {
-        return response.body!!.string()
-    }
-
-    override fun requestFail(httpRequest: HttpRequest<*>, e: Throwable): Throwable {
-        return e
-    }
-
-}
-
-class FakeServer : IRequestServer {
-    override fun getHost(): String {
-        return "https://www.wanandroid.com/"
-    }
-
-}
-
-open class TestServer : IRequestServer {
-
-
-    override fun getHost(): String {
-        return ""
-    }
-}
-
-class DefaultApi(private val reqUrl: String) : IRequestApi, IRequestInterceptor, TestServer() {
-    override fun getHost(): String {
-        return ""
-    }
-
-    override fun getApi(): String {
-        return reqUrl
-    }
-
-}
-
 /**
- * 使用okhttp
+ * 基于 OkHttp 实现的版本更新网络请求服务
  *
  * @author xuexiang
  * @since 2018/7/10 下午4:04
  */
 class OKHttpUpdateHttpService(timeout: Int, private val mIsPostJson: Boolean) : IUpdateHttpService {
-    constructor(isPostJson: Boolean) : this(20000, isPostJson)
 
     /**
-     * 构造方法
-     *
-     * @param timeout    请求超时响应时间
-     * @param isPostJson 是否使用json
+     * 下载请求，key为下载地址，用于取消下载
      */
+    private val mDownloadCalls = ConcurrentHashMap<String, Call>()
 
+    private val mClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+        .readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
+        .writeTimeout(5000L, TimeUnit.MILLISECONDS)
+        .build()
+
+    private val mMainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * 将结果回调切换至主线程, 保证上层(如MethodChannel)可以安全调用UI相关API
+     */
+    private fun postToMainThread(runnable: Runnable) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            runnable.run()
+        } else {
+            mMainHandler.post(runnable)
+        }
+    }
 
     init {
-        val builder: OkHttpClient.Builder = OkHttpClient.Builder()
-        builder.readTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-        builder.writeTimeout(5000, TimeUnit.MILLISECONDS)
-        builder.connectTimeout(timeout.toLong(), TimeUnit.MILLISECONDS)
-
-        EasyConfig.with(builder.build()).setServer(FakeServer()).setHandler(RequestHandler())
-            .into()
         UpdateLog.d("设置请求超时响应时间:" + timeout + "ms, 是否使用json:" + mIsPostJson)
     }
 
-    override fun asyncGet(
-        url: String,
-        params: Map<String, Any>,
-        callBack: IUpdateHttpService.Callback
-    ) {
-        EasyHttp.get(ApplicationLifecycle.getInstance()).api(EasyRequestUrl(url))
-            .request(object : OnHttpListener<String> {
-                override fun onHttpSuccess(result: String) {
-                    callBack.onSuccess(result)
+    override fun asyncGet(url: String, params: Map<String, Any>, callBack: IUpdateHttpService.Callback) {
+        mClient.newCall(Request.Builder().url(buildGetUrl(url, params)).get().build())
+            .enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    postToMainThread { callBack.onError(e) }
                 }
 
-                override fun onHttpFail(e: Throwable) {
-                    callBack.onError(e)
+                override fun onResponse(call: Call, response: Response) {
+                    val result = response.use { it.body?.string() ?: "" }
+                    postToMainThread { callBack.onSuccess(result) }
                 }
             })
-
-
     }
 
-    override fun asyncPost(
-        url: String,
-        params: Map<String, Any>,
-        callBack: IUpdateHttpService.Callback
-    ) {
-        val JSON = "application/json; charset=utf-8".toMediaTypeOrNull()
-        //这里默认post的是Form格式，使用json格式的请修改 post -> postString
-        if (mIsPostJson) {
-
-
-            val body: RequestBody = Gson().toJson(params).toRequestBody(JSON)
-            EasyHttp.post(ApplicationLifecycle.getInstance()).api(EasyRequestUrl(url )).body(body)
-                .request(object : OnHttpListener<String> {
-                    override fun onHttpSuccess(result: String) {
-                        callBack.onSuccess(result)
-                    }
-
-                    override fun onHttpFail(e: Throwable) {
-                        callBack.onError(e)
-                    }
-
-                })
-
-
+    override fun asyncPost(url: String, params: Map<String, Any>, callBack: IUpdateHttpService.Callback) {
+        val body = if (mIsPostJson) {
+            JSONObject(params).toString()
+                .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
         } else {
-
+            FormBody.Builder().apply {
+                for ((key, value) in params) {
+                    add(key, value?.toString() ?: "")
+                }
+            }.build()
         }
+        mClient.newCall(Request.Builder().url(url).post(body).build())
+            .enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    postToMainThread { callBack.onError(e) }
+                }
 
+                override fun onResponse(call: Call, response: Response) {
+                    val result = response.use { it.body?.string() ?: "" }
+                    postToMainThread { callBack.onSuccess(result) }
+                }
+            })
     }
 
-    override fun download(
-        url: String,
-        path: String,
-        fileName: String,
-        callback: IUpdateHttpService.DownloadCallback
-    ) {
-
-
-        EasyHttp.download(ApplicationLifecycle.getInstance()).method(HttpMethod.GET)
-            .file(path )
-            .url(url).tag(url).listener(object : OnDownloadListener {
-                override fun onDownloadStart(file: File) {
-                    super.onDownloadStart(file)
-                    callback.onStart()
+    override fun download(url: String, path: String, fileName: String, callback: IUpdateHttpService.DownloadCallback) {
+        val call = mClient.newCall(Request.Builder().url(url).get().build())
+        mDownloadCalls[url] = call
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                mDownloadCalls.remove(url)
+                if (!call.isCanceled()) {
+                    postToMainThread { callback.onError(e) }
                 }
+            }
 
-                override fun onDownloadProgressChange(file: File, progress: Int) {
-                    callback.onProgress((progress / 100).toFloat(), file.totalSpace)
+            override fun onResponse(call: Call, response: Response) {
+                mDownloadCalls.remove(url)
+                if (!response.isSuccessful) {
+                    val code = response.code
+                    response.close()
+                    postToMainThread { callback.onError(IOException("下载失败, HTTP响应码:" + code)) }
+                    return
                 }
-
-                override fun onDownloadSuccess(file: File) {
-                    callback.onSuccess(file)
+                postToMainThread { callback.onStart() }
+                try {
+                    val dir = File(path)
+                    if (!dir.exists()) {
+                        dir.mkdirs()
+                    }
+                    val file = saveFile(response, call, File(dir, fileName)) { rate, total ->
+                        postToMainThread { callbackProgress(callback, rate, total) }
+                    }
+                    postToMainThread { callback.onSuccess(file) }
+                } catch (e: Exception) {
+                    postToMainThread { callback.onError(e) }
                 }
-
-                override fun onDownloadFail(file: File, throwable: Throwable) {
-                    callback.onError(throwable)
-                }
-            }).start()
-
+            }
+        })
     }
 
     override fun cancelDownload(url: String) {
-        EasyHttp.cancelByTag(url)
-
+        UpdateLog.d("取消下载, url:" + url)
+        mDownloadCalls.remove(url)?.cancel()
     }
 
-    private fun transform(params: Map<String, Any>): Map<String, String> {
-        val map: MutableMap<String, String> = TreeMap()
-        for ((key, value) in params) {
-            map[key] = value.toString()
+    /**
+     * 构建get请求的url
+     */
+    private fun buildGetUrl(url: String, params: Map<String, Any>): String {
+        if (params.isEmpty()) {
+            return url
         }
-        return map
+        val sb = StringBuilder(url)
+        sb.append(if (url.contains('?')) '&' else '?')
+        var isFirst = true
+        for ((key, value) in params) {
+            if (!isFirst) {
+                sb.append('&')
+            }
+            isFirst = false
+            sb.append(URLEncoder.encode(key, "UTF-8"))
+                .append('=')
+                .append(URLEncoder.encode(value?.toString() ?: "", "UTF-8"))
+        }
+        return sb.toString()
+    }
+
+    /**
+     * 将下载内容保存至文件
+     */
+    @Throws(IOException::class)
+    private fun saveFile(
+        response: Response,
+        call: Call,
+        file: File,
+        onProgress: (Int, Long) -> Unit
+    ): File {
+        val body = response.body ?: throw IOException("下载失败, 响应内容为空")
+        val contentLength = body.contentLength()
+        body.byteStream().use { input ->
+            FileOutputStream(file).use { output ->
+                val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                var written: Long = 0
+                var lastRate = 0
+                while (true) {
+                    if (call.isCanceled()) {
+                        throw IOException("下载已取消")
+                    }
+                    val read = input.read(buf)
+                    if (read == -1) {
+                        break
+                    }
+                    output.write(buf, 0, read)
+                    written += read
+                    if (contentLength > 0) {
+                        val rate = (written * 100 / contentLength).toInt()
+                        if (rate != lastRate) {
+                            lastRate = rate
+                            onProgress(rate, contentLength)
+                        }
+                    }
+                }
+                output.flush()
+                if (contentLength <= 0) {
+                    //响应长度未知时, 下载完成补一次100%的进度回调
+                    onProgress(100, 0)
+                }
+            }
+        }
+        return file
+    }
+
+    private fun callbackProgress(callback: IUpdateHttpService.DownloadCallback, rate: Int, total: Long) {
+        UpdateLog.d("下载进度: $rate%")
+        callback.onProgress(rate / 100.0f, if (total > 0) total else 0)
     }
 }
